@@ -1,0 +1,9 @@
+.\output\cjson.o: NET\CJSON\cJSON.c
+.\output\cjson.o: D:\Keil_v5\ARM\ARMCompiler_506_Windows_x86_b960\Bin\..\include\string.h
+.\output\cjson.o: D:\Keil_v5\ARM\ARMCompiler_506_Windows_x86_b960\Bin\..\include\stdio.h
+.\output\cjson.o: D:\Keil_v5\ARM\ARMCompiler_506_Windows_x86_b960\Bin\..\include\math.h
+.\output\cjson.o: D:\Keil_v5\ARM\ARMCompiler_506_Windows_x86_b960\Bin\..\include\stdlib.h
+.\output\cjson.o: D:\Keil_v5\ARM\ARMCompiler_506_Windows_x86_b960\Bin\..\include\float.h
+.\output\cjson.o: D:\Keil_v5\ARM\ARMCompiler_506_Windows_x86_b960\Bin\..\include\limits.h
+.\output\cjson.o: D:\Keil_v5\ARM\ARMCompiler_506_Windows_x86_b960\Bin\..\include\ctype.h
+.\output\cjson.o: NET\CJSON\cJSON.h
