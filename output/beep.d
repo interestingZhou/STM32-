@@ -1,7 +1,7 @@
 .\output\beep.o: hardware\src\beep.c
 .\output\beep.o: .\core\stm32f10x.h
 .\output\beep.o: .\core\core_cm3.h
-.\output\beep.o: D:\Program Files (x86)\MDK-ARM\ARM\ARMCC\Bin\..\include\stdint.h
+.\output\beep.o: D:\Keil_v5\ARM\ARMCompiler_506_Windows_x86_b960\Bin\..\include\stdint.h
 .\output\beep.o: .\core\system_stm32f10x.h
 .\output\beep.o: .\core\stm32f10x_conf.h
 .\output\beep.o: .\fwlib\inc\stm32f10x_adc.h
@@ -28,3 +28,4 @@
 .\output\beep.o: .\fwlib\inc\stm32f10x_usart.h
 .\output\beep.o: .\fwlib\inc\stm32f10x_wwdg.h
 .\output\beep.o: .\fwlib\inc\misc.h
+.\output\beep.o: .\hardware\inc\beep.h

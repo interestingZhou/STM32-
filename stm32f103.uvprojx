@@ -484,6 +484,26 @@
               <FileType>1</FileType>
               <FilePath>.\hardware\src\LightSensor.c</FilePath>
             </File>
+            <File>
+              <FileName>beep.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\hardware\src\beep.c</FilePath>
+            </File>
+            <File>
+              <FileName>algorithm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\hardware\src\algorithm.c</FilePath>
+            </File>
+            <File>
+              <FileName>max30102.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\hardware\src\max30102.c</FilePath>
+            </File>
+            <File>
+              <FileName>xiic.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\hardware\src\xiic.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

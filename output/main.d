@@ -41,4 +41,9 @@
 .\output\main.o: .\hardware\inc\HCSR04.h
 .\output\main.o: .\hardware\inc\PWM.h
 .\output\main.o: .\hardware\inc\LightSensor.h
+.\output\main.o: .\hardware\inc\beep.h
+.\output\main.o: .\hardware\inc\max30102.h
+.\output\main.o: .\hardware\inc\sys.h
+.\output\main.o: .\hardware\inc\algorithm.h
+.\output\main.o: .\hardware\inc\xiic.h
 .\output\main.o: D:\Keil_v5\ARM\ARMCompiler_506_Windows_x86_b960\Bin\..\include\string.h

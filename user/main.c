@@ -38,6 +38,10 @@
 #include "HCSR04.h"
 #include "PWM.h"
 #include "LightSensor.h"
+#include "beep.h"
+#include "max30102.h"
+#include "algorithm.h"
+#include "xiic.h"
 
 //C库
 #include <string.h>
@@ -77,8 +81,14 @@ u16 Distance_mm;
 ************************************************************
 */
 
+
 int main(void)
 {
+	int32_t n_heart_rate = 0;
+  int32_t n_sp02 = 0;
+	char buf[3];
+	char dis[2];
+	char dim[4];
 	
 	unsigned short timeCount = 0;	//发送间隔变量
 	
@@ -95,7 +105,7 @@ int main(void)
 	while(ESP8266_SendCmd(ESP8266_ONENET_INFO, "CONNECT"))
 		DelayXms(500);
 	
-//	UsartPrintf(USART_DEBUG, "Connect MQTT Server Success\r\n");
+	UsartPrintf(USART_DEBUG, "Connect MQTT Server Success\r\n");
 	
 	OLED_ShowString(0,4,"Connect MQTT Server Success",8);
 	DelayXms(500);
@@ -116,6 +126,7 @@ int main(void)
 	
 	while(1)
 	{		
+//		UsartPrintf(USART_DEBUG, "Connect MQTTs Server...\r\n");
 		Refresh_Data();
 		if (LightSensor_Get() == 1)		//如果当前光敏输出1
 		{
@@ -125,11 +136,43 @@ int main(void)
 		{
 			Led_Set(LED_OFF); //led关闭
 		}
+		if (temp >= 33)
+			{
+				Beep_Set(BEEP_ON);//蜂鸣器开启
+		}
+		else
+   {
+		 Beep_Set(BEEP_OFF);//蜂鸣器关闭
+	 }
 		if(++timeCount >= 100)									//发送间隔5s
 		{
 			DHT11_Read_Data(&temp,&humi);
 			
 			HCSR04_Read_Data(&Distance_mm);
+			
+			max30102_Read_Data(&n_heart_rate, &n_sp02);
+			
+			if (n_heart_rate<100){
+				OLED_PartClear(4,6);
+				OLED_ShowString(0,4,"heart",16);//心率
+		    OLED_ShowCHinese(36,4,0);//：
+		    OLED_ShowString(82,4,"bpm",16);
+				sprintf(dis, "%2d", n_heart_rate);
+	      OLED_ShowString(50,4,dis,16);
+			}
+			else{
+				OLED_PartClear(4,6);
+				OLED_ShowString(0,4,"heart",16);//心率
+		    OLED_ShowCHinese(36,4,0);//：
+		    OLED_ShowString(82,4,"bpm",16);
+				sprintf(buf, "%2d", n_heart_rate);
+	      OLED_ShowString(50,4,buf,16);
+			}
+			
+			n_sp02 = (n_sp02 > 99.99) ? 99.99:n_sp02;
+			
+	    sprintf(dis, "%2d", n_sp02);
+	    OLED_ShowString(50,6,dis,16);
 			
 			OneNet_SendData();									//发送数据
 			
@@ -161,7 +204,6 @@ int main(void)
 */
 void Hardware_Init(void)
 {
-	
 //	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);	//中断控制器分组设置
 
 	Delay_Init();									//systick初始化
@@ -182,7 +224,11 @@ void Hardware_Init(void)
 	
 	PWM_Init();
 	
+	Beep_Init();
+	
 	LightSensor_Init();
+	
+	max30102_init();//max30102初始化
 
 	
 	while(DHT11_Init())
@@ -192,7 +238,6 @@ void Hardware_Init(void)
 
 		DelayMs(1000);
 	}	
-	
 //	UsartPrintf(USART_DEBUG, " Hardware init OK\r\n");
 	OLED_ShowString(0,0," Hardware init OK",16);
 	DelayMs(1000);
@@ -217,23 +262,34 @@ void Display_Init(void){
 		OLED_ShowString(72,2,"%",16);//%
 
 		
-		OLED_ShowCHinese(0,4,6);//台
-		OLED_ShowCHinese(18,4,7);//灯
-		OLED_ShowCHinese(36,4,0);//：
-	  
+//		OLED_ShowCHinese(0,4,6);//台
+//		OLED_ShowCHinese(18,4,7);//灯
+//		OLED_ShowCHinese(36,4,0);//：
+//	
+//    OLED_ShowCHinese(0,6,10);//距
+//		OLED_ShowCHinese(18,6,11);//离
+//    OLED_ShowCHinese(36,6,0);//：
+////		OLED_ShowString(50,6,"22",16);
+//		OLED_ShowString(82,6,"mm",16);
 
-		OLED_ShowCHinese(0,6,10);//距
-		OLED_ShowCHinese(18,6,11);//离
+	  OLED_ShowString(0,4,"heart",16);//心率
+		OLED_ShowCHinese(36,4,0);//：
+		OLED_ShowString(82,4,"bpm",16);
+		
+		OLED_ShowString(0,6,"SpO2",16);//血氧
     OLED_ShowCHinese(36,6,0);//：
-//		OLED_ShowString(50,6,"22",16);
-		OLED_ShowString(82,6,"mm",16);
+		OLED_ShowString(82,6,"%",16);
 
 }
 void Refresh_Data(void)
 {
+//	int32_t n_heart_rate = 0;
+//  int32_t n_sp02 = 0;
 	char buf[3];
 	char dis[2];
 	char dim[4];
+	
+//	max30102_Read_Data(&n_heart_rate, &n_sp02);
 	
 	sprintf(buf, "%2d", temp);
 	OLED_ShowString(50,0,buf,16);//温度值
@@ -241,69 +297,76 @@ void Refresh_Data(void)
 	sprintf(buf, "%2d", humi);
 	OLED_ShowString(50,2,buf,16);//湿度值
 	
-	if (Distance_mm<100){
-    OLED_PartClear(6,8);
-		OLED_ShowCHinese(0,6,10);//距
-		OLED_ShowCHinese(18,6,11);//离
-    OLED_ShowCHinese(36,6,0);//：
-		OLED_ShowString(82,6,"mm",16);
-
-		sprintf(dis, "%2d", Distance_mm);
-	  OLED_ShowString(50,6,dis,16);
-	}
-	if (Distance_mm>=1000){
-		OLED_PartClear(6,8);
-		OLED_ShowCHinese(0,6,10);//距
-		OLED_ShowCHinese(18,6,11);//离
-    OLED_ShowCHinese(36,6,0);//：
-		OLED_ShowString(82,6,"mm",16);
-
-		sprintf(dim, "%2d", Distance_mm);
-	  OLED_ShowString(50,6,dim,16);
-	}
-	else{
-		sprintf(buf, "%2d", Distance_mm);
-	  OLED_ShowString(50,6,buf,16);
-	}
+//	sprintf(buf, "%2d", n_heart_rate);
+//	OLED_ShowString(50,4,buf,16);
+//	
+//	sprintf(dis, "%2d", n_sp02);
+//	OLED_ShowString(50,6,dis,16);
 	
-	if (yled_info.YLed_Status==1&&wled_info.WLed_Status==0)
-		{
-			OLED_PartClear(4,6);
-			OLED_ShowCHinese(0,4,6);//台
-	    OLED_ShowCHinese(18,4,7);//灯
-		  OLED_ShowCHinese(36,4,0);//：
-			OLED_ShowCHinese(50,4,16);//睡
-			OLED_ShowCHinese(66,4,17);//眠
-			OLED_ShowCHinese(82,4,14);//模
-			OLED_ShowCHinese(98,4,15);//式
-		}
-	if (yled_info.YLed_Status==0&&wled_info.WLed_Status==1)
-		{
-			OLED_PartClear(4,6);
-			OLED_ShowCHinese(0,4,6);//台
-	    OLED_ShowCHinese(18,4,7);//灯
-		  OLED_ShowCHinese(36,4,0);//：
-			OLED_ShowCHinese(50,4,12);//正
-			OLED_ShowCHinese(66,4,13);//常
-			OLED_ShowCHinese(82,4,14);//模
-			OLED_ShowCHinese(98,4,15);//式
-		}
-	if (yled_info.YLed_Status==1&&wled_info.WLed_Status==1)
-		{
-			OLED_PartClear(4,6);
-			OLED_ShowCHinese(0,4,6);//台
-	    OLED_ShowCHinese(18,4,7);//灯
-		  OLED_ShowCHinese(36,4,0);//：
-			OLED_ShowCHinese(50,4,18);//全
-			OLED_ShowCHinese(66,4,8);//亮
-		}
-	if (yled_info.YLed_Status==0&&wled_info.WLed_Status==0)
-		{
-			OLED_PartClear(4,6);
-			OLED_ShowCHinese(0,4,6);//台
-		  OLED_ShowCHinese(36,4,0);//：
-	    OLED_ShowCHinese(18,4,7);//灯
-			OLED_ShowCHinese(50,4,18);//全
-			OLED_ShowCHinese(66,4,9);//灭
-		}
+	
+//	if (Distance_mm<100){
+//    OLED_PartClear(6,8);
+//		OLED_ShowCHinese(0,6,10);//距
+//		OLED_ShowCHinese(18,6,11);//离
+//    OLED_ShowCHinese(36,6,0);//：
+//		OLED_ShowString(82,6,"mm",16);
+
+//		sprintf(dis, "%2d", Distance_mm);
+//	  OLED_ShowString(50,6,dis,16);
+//	}
+//	if (Distance_mm>=1000){
+//		OLED_PartClear(6,8);
+//		OLED_ShowCHinese(0,6,10);//距
+//		OLED_ShowCHinese(18,6,11);//离
+//    OLED_ShowCHinese(36,6,0);//：
+//		OLED_ShowString(82,6,"mm",16);
+
+//		sprintf(dim, "%2d", Distance_mm);
+//	  OLED_ShowString(50,6,dim,16);
+//	}
+//	else{
+//		sprintf(buf, "%2d", Distance_mm);
+//	  OLED_ShowString(50,6,buf,16);
+//	}
+//	
+//	if (yled_info.YLed_Status==1&&wled_info.WLed_Status==0)
+//		{
+//			OLED_PartClear(4,6);
+//			OLED_ShowCHinese(0,4,6);//台
+//	    OLED_ShowCHinese(18,4,7);//灯
+//		  OLED_ShowCHinese(36,4,0);//：
+//			OLED_ShowCHinese(50,4,16);//睡
+//			OLED_ShowCHinese(66,4,17);//眠
+//			OLED_ShowCHinese(82,4,14);//模
+//			OLED_ShowCHinese(98,4,15);//式
+//		}
+//	if (yled_info.YLed_Status==0&&wled_info.WLed_Status==1)
+//		{
+//			OLED_PartClear(4,6);
+//			OLED_ShowCHinese(0,4,6);//台
+//	    OLED_ShowCHinese(18,4,7);//灯
+//		  OLED_ShowCHinese(36,4,0);//：
+//			OLED_ShowCHinese(50,4,12);//正
+//			OLED_ShowCHinese(66,4,13);//常
+//			OLED_ShowCHinese(82,4,14);//模
+//			OLED_ShowCHinese(98,4,15);//式
+//		}
+//	if (yled_info.YLed_Status==1&&wled_info.WLed_Status==1)
+//		{
+//			OLED_PartClear(4,6);
+//			OLED_ShowCHinese(0,4,6);//台
+//	    OLED_ShowCHinese(18,4,7);//灯
+//		  OLED_ShowCHinese(36,4,0);//：
+//			OLED_ShowCHinese(50,4,18);//全
+//			OLED_ShowCHinese(66,4,8);//亮
+//		}
+//	if (yled_info.YLed_Status==0&&wled_info.WLed_Status==0)
+//		{
+//			OLED_PartClear(4,6);
+//			OLED_ShowCHinese(0,4,6);//台
+//		  OLED_ShowCHinese(36,4,0);//：
+//	    OLED_ShowCHinese(18,4,7);//灯
+//			OLED_ShowCHinese(50,4,18);//全
+//			OLED_ShowCHinese(66,4,9);//灭
+//		}
 }
